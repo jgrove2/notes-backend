@@ -1,4 +1,4 @@
-package dev.jgrove2.notes_backend;
+package dev.jgrove2.notes_backend.Controllers;
 
 import java.util.Map;
 
