@@ -66,7 +66,7 @@ public class DatabaseConfig {
 
         // Connection properties for Neon PostgreSQL
         config.addDataSourceProperty("sslmode", "require");
-        config.addDataSourceProperty("autoCommit", "true");
+        config.addDataSourceProperty("autoCommit", "false");
         config.addDataSourceProperty("readOnly", "false");
 
         // Performance optimizations

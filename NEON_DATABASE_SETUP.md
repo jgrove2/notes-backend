@@ -101,7 +101,7 @@ The utility automatically configures SSL for Neon:
 ```java
 Properties props = new Properties();
 props.setProperty("sslmode", "require");
-props.setProperty("autoCommit", "true");
+props.setProperty("autoCommit", "false");
 props.setProperty("readOnly", "false");
 ```
 
