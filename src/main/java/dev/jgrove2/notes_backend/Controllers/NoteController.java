@@ -3,6 +3,7 @@ package dev.jgrove2.notes_backend.Controllers;
 import dev.jgrove2.notes_backend.Models.Note;
 import dev.jgrove2.notes_backend.Models.User;
 import dev.jgrove2.notes_backend.Services.NoteService;
+import dev.jgrove2.notes_backend.Services.S3Service;
 import dev.jgrove2.notes_backend.Services.UserService;
 import dev.jgrove2.notes_backend.Utils.TokenExtractionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,9 @@ public class NoteController {
 
     @Autowired
     private TokenExtractionUtil tokenExtractionUtil;
+
+    @Autowired
+    private S3Service s3Service;
 
     /**
      * Create a new note with file upload
@@ -56,7 +61,9 @@ public class NoteController {
             User user = userOptional.get();
             Long userId = user.getUserId();
             Long fileSize = file.getSize();
-            String objectKey = "testing123123123";
+
+            // Upload file to R2
+            String objectKey = s3Service.uploadFile(file.getInputStream(), filename, userId);
 
             // Create note
             Note note = noteService.createNote(filename, userId, fileSize, objectKey);
@@ -136,7 +143,19 @@ public class NoteController {
             Long userId = user.getUserId();
             Long newFileSize = file.getSize();
 
-            // Update note
+            // Get existing note to find the object key
+            Optional<Note> existingNote = noteService.getNoteByUserIdAndFileName(userId, filename);
+            if (!existingNote.isPresent()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "Note not found: " + filename));
+            }
+
+            String objectKey = existingNote.get().getObjectKey();
+
+            // Update file in R2
+            s3Service.updateFile(file.getInputStream(), objectKey);
+
+            // Update note in database
             Note updatedNote = noteService.updateNote(userId, filename, newFileSize);
 
             return ResponseEntity.ok(updatedNote);
@@ -148,10 +167,10 @@ public class NoteController {
     }
 
     /**
-     * Get note by filename
+     * Get note info by filename
      */
-    @GetMapping("/{filename}")
-    public ResponseEntity<?> getNoteByFilename(
+    @GetMapping("/{filename}/info")
+    public ResponseEntity<?> getNoteInfoByFilename(
             @RequestHeader("Authorization") String authorizationHeader,
             @PathVariable String filename) {
 
@@ -185,7 +204,67 @@ public class NoteController {
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to get note: " + e.getMessage()));
+                    .body(Map.of("error", "Failed to get note info: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get note content by filename (returns the actual JSON file from S3)
+     */
+    @GetMapping("/{filename}")
+    public ResponseEntity<?> getNoteContentByFilename(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable String filename) {
+
+        try {
+            // Extract kinde_user_id from JWT token
+            String kindeUserId = tokenExtractionUtil.extractKindeUserIdFromHeader(authorizationHeader);
+            if (kindeUserId == null || kindeUserId.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Invalid token: missing subject claim"));
+            }
+
+            // Get user from database
+            Optional<User> userOptional = userService.getUserByKindeUserId(kindeUserId);
+            if (!userOptional.isPresent()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "User profile not found"));
+            }
+
+            User user = userOptional.get();
+            Long userId = user.getUserId();
+
+            // Get note by filename to retrieve the object key
+            Optional<Note> noteOptional = noteService.getNoteByUserIdAndFileName(userId, filename);
+            if (!noteOptional.isPresent()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "Note not found: " + filename));
+            }
+
+            Note note = noteOptional.get();
+            String objectKey = note.getObjectKey();
+
+            // Check if file exists in S3
+            if (!s3Service.fileExists(objectKey)) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "Note file not found in storage: " + filename));
+            }
+
+            // Get file content from S3
+            InputStream fileContent = s3Service.getFile(objectKey);
+
+            // Convert InputStream to byte array for response
+            byte[] content = fileContent.readAllBytes();
+            fileContent.close();
+
+            return ResponseEntity.ok()
+                    .header("Content-Type", "application/json")
+                    .header("Content-Disposition", "inline; filename=\"" + filename + "\"")
+                    .body(content);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to get note content: " + e.getMessage()));
         }
     }
 
@@ -215,7 +294,19 @@ public class NoteController {
             User user = userOptional.get();
             Long userId = user.getUserId();
 
-            // Delete note
+            // Get existing note to find the object key
+            Optional<Note> existingNote = noteService.getNoteByUserIdAndFileName(userId, filename);
+            if (!existingNote.isPresent()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "Note not found: " + filename));
+            }
+
+            String objectKey = existingNote.get().getObjectKey();
+
+            // Delete file from R2
+            s3Service.deleteFile(objectKey);
+
+            // Delete note from database
             noteService.deleteNote(userId, filename);
 
             return ResponseEntity.ok(Map.of("message", "Note deleted successfully: " + filename));
