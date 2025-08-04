@@ -69,6 +69,22 @@ public class JwtTokenUtil {
         }
     }
 
+    /**
+     * Extract the subject (sub) claim from JWT token
+     * This is typically the kinde_user_id
+     */
+    public String getSubjectFromToken(String token) {
+        Claims claims = parseToken(token);
+        return claims.getSubject();
+    }
+
+    /**
+     * Extract the kinde_user_id from JWT token
+     */
+    public String getKindeUserIdFromToken(String token) {
+        return getSubjectFromToken(token);
+    }
+
     private String getKidFromTokenHeader(String token) throws IOException {
         String[] parts = token.split("\\.");
         if (parts.length < 2) {
