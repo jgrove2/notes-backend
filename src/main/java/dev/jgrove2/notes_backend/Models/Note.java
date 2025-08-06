@@ -32,6 +32,10 @@ public class Note {
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
+    @Column(name = "last_modified_date", nullable = false)
+    private LocalDateTime lastModifiedDate;
+
+    @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
@@ -104,6 +108,14 @@ public class Note {
         this.createdAt = createdAt;
     }
 
+    public LocalDateTime getLastModifiedDate() {
+        return lastModifiedDate;
+    }
+
+    public void setLastModifiedDate(LocalDateTime lastModifiedDate) {
+        this.lastModifiedDate = lastModifiedDate;
+    }
+
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
@@ -122,6 +134,7 @@ public class Note {
                 ", objectKey='" + objectKey + '\'' +
                 ", totalSizeBytes=" + totalSizeBytes +
                 ", createdAt=" + createdAt +
+                ", lastModifiedDate=" + lastModifiedDate +
                 ", updatedAt=" + updatedAt +
                 '}';
     }

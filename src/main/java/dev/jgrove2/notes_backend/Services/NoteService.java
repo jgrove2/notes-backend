@@ -5,7 +5,9 @@ import dev.jgrove2.notes_backend.Repositories.NoteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -50,7 +52,7 @@ public class NoteService {
         if (noteOptional.isPresent()) {
             Note note = noteOptional.get();
             note.setTotalSizeBytes(newTotalSizeBytes);
-            // updatedAt will be automatically updated by @UpdateTimestamp
+            note.setLastModifiedDate(java.time.LocalDateTime.now());
             return noteRepository.save(note);
         } else {
             throw new RuntimeException("Note not found: " + fileName);
@@ -99,5 +101,40 @@ public class NoteService {
         return notes.stream()
                 .mapToLong(Note::getTotalSizeBytes)
                 .sum();
+    }
+
+    /**
+     * Build file structure for a user
+     * Creates a hierarchical structure from filenames that contain full paths
+     */
+    public Map<String, Object> buildFileStructure(Long userId) {
+        List<Note> notes = noteRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        Map<String, Object> fileStructure = new HashMap<>();
+
+        for (Note note : notes) {
+            String fileName = note.getFileName();
+            String[] pathParts = fileName.split("/");
+
+            Map<String, Object> currentLevel = fileStructure;
+
+            // Build the path structure
+            for (int i = 0; i < pathParts.length - 1; i++) {
+                String folderName = pathParts[i];
+
+                if (!currentLevel.containsKey(folderName)) {
+                    currentLevel.put(folderName, new HashMap<String, Object>());
+                }
+
+                @SuppressWarnings("unchecked")
+                Map<String, Object> nextLevel = (Map<String, Object>) currentLevel.get(folderName);
+                currentLevel = nextLevel;
+            }
+
+            // Add the file at the final level (just the filename, no metadata)
+            String fileNameOnly = pathParts[pathParts.length - 1];
+            currentLevel.put(fileNameOnly, null);
+        }
+
+        return fileStructure;
     }
 }

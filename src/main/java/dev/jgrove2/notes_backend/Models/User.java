@@ -31,10 +31,6 @@ public class User {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
-
     @Column(name = "kinde_user_id", unique = true, nullable = false)
     private String kindeUserId;
 
@@ -103,14 +99,6 @@ public class User {
         this.createdAt = createdAt;
     }
 
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
     public String getKindeUserId() {
         return kindeUserId;
     }
@@ -130,7 +118,6 @@ public class User {
                 ", lastModifiedDate=" + lastModifiedDate +
                 ", isActive=" + isActive +
                 ", createdAt=" + createdAt +
-                ", updatedAt=" + updatedAt +
                 ", kindeUserId='" + kindeUserId + '\'' +
                 '}';
     }

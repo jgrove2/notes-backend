@@ -118,11 +118,11 @@ public class NoteController {
     /**
      * Update note with new file
      */
-    @PutMapping("/{filename}")
+    @PutMapping
     public ResponseEntity<?> updateNote(
             @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable String filename,
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("filename") String filename) {
 
         try {
             // Extract kinde_user_id from JWT token
@@ -152,11 +152,15 @@ public class NoteController {
 
             String objectKey = existingNote.get().getObjectKey();
 
+            System.out.println("Updating file in R2: " + objectKey);
             // Update file in R2
             s3Service.updateFile(file.getInputStream(), objectKey);
 
+            System.out.println("Updating note in database: " + filename);
             // Update note in database
             Note updatedNote = noteService.updateNote(userId, filename, newFileSize);
+
+            System.out.println("Updated note: " + updatedNote);
 
             return ResponseEntity.ok(updatedNote);
 
@@ -358,6 +362,47 @@ public class NoteController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to get storage size: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get file structure for the current user
+     * Returns a hierarchical JSON object representing the user's file organization
+     */
+    @GetMapping("/structure")
+    public ResponseEntity<?> getFileStructure(@RequestHeader("Authorization") String authorizationHeader) {
+        try {
+            // Extract kinde_user_id from JWT token
+            String kindeUserId = tokenExtractionUtil.extractKindeUserIdFromHeader(authorizationHeader);
+            if (kindeUserId == null || kindeUserId.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Invalid token: missing subject claim"));
+            }
+
+            // Get user from database
+            Optional<User> userOptional = userService.getUserByKindeUserId(kindeUserId);
+            if (!userOptional.isPresent()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "User profile not found"));
+            }
+
+            User user = userOptional.get();
+            Long userId = user.getUserId();
+
+            // Build file structure
+            Map<String, Object> fileStructure = noteService.buildFileStructure(userId);
+            long noteCount = noteService.getNoteCountByUserId(userId);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("userId", userId);
+            response.put("noteCount", noteCount);
+            response.put("fileStructure", fileStructure);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to get file structure: " + e.getMessage()));
         }
     }
 
