@@ -8,7 +8,6 @@ import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.UUID;
 
 @Service
 public class S3Service {
@@ -140,8 +139,7 @@ public class S3Service {
      * @return The generated object key
      */
     private String generateObjectKey(Long userId, String fileName) {
-        String uuid = UUID.randomUUID().toString();
-        return String.format("users/%d/notes/%s/%s", userId, uuid, fileName);
+        return String.format("users/%d/notes/%s", userId, fileName);
     }
 
     /**
