@@ -213,7 +213,7 @@ public class NoteController {
     }
 
     /**
-     * Get note content by filename (returns the actual JSON file from S3)
+     * Get note content by filename (returns the actual HTML file from S3)
      */
     @GetMapping("/{filename}")
     public ResponseEntity<?> getNoteContentByFilename(
@@ -262,7 +262,7 @@ public class NoteController {
             fileContent.close();
 
             return ResponseEntity.ok()
-                    .header("Content-Type", "application/json")
+                    .header("Content-Type", "text/html; charset=UTF-8")
                     .header("Content-Disposition", "inline; filename=\"" + filename + "\"")
                     .body(content);
 
@@ -367,7 +367,7 @@ public class NoteController {
 
     /**
      * Get file structure for the current user
-     * Returns a hierarchical JSON object representing the user's file organization
+     * Returns a hierarchical structure representing the user's file organization
      */
     @GetMapping("/structure")
     public ResponseEntity<?> getFileStructure(@RequestHeader("Authorization") String authorizationHeader) {

@@ -35,7 +35,7 @@ public class S3Service {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
                     .key(objectKey)
-                    .contentType("application/json") // Assuming JSON files
+                    .contentType("text/html; charset=UTF-8") // HTML files
                     .build();
 
             s3Client.putObject(putObjectRequest,
@@ -60,7 +60,7 @@ public class S3Service {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
                     .key(objectKey)
-                    .contentType("application/json")
+                    .contentType("text/html; charset=UTF-8")
                     .build();
 
             s3Client.putObject(putObjectRequest,
