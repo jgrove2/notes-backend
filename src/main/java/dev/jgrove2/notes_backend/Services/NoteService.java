@@ -67,6 +67,26 @@ public class NoteService {
     }
 
     /**
+     * Rename note filename for a given user. Object key remains unchanged.
+     */
+    public Note renameNote(Long userId, String oldFileName, String newFileName) {
+        if (oldFileName.equals(newFileName)) {
+            throw new RuntimeException("New filename is the same as the current filename");
+        }
+        Optional<Note> noteOptional = noteRepository.findByUserIdAndFileName(userId, oldFileName);
+        if (!noteOptional.isPresent()) {
+            throw new RuntimeException("Note not found: " + oldFileName);
+        }
+        if (noteRepository.existsByUserIdAndFileName(userId, newFileName)) {
+            throw new RuntimeException("Note with file name '" + newFileName + "' already exists for this user");
+        }
+        Note note = noteOptional.get();
+        note.setFileName(newFileName);
+        note.setLastModifiedDate(java.time.LocalDateTime.now());
+        return noteRepository.save(note);
+    }
+
+    /**
      * Delete note
      */
     public void deleteNote(Long userId, String fileName) {

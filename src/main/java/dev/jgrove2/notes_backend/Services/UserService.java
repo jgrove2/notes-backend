@@ -40,7 +40,7 @@ public class UserService {
     }
 
     /**
-     * Update user
+     * Update user (both names required)
      */
     public User updateUser(Long userId, String firstName, String lastName) {
         Optional<User> optionalUser = userRepository.findById(userId);
@@ -48,6 +48,26 @@ public class UserService {
             User user = optionalUser.get();
             user.setFirstName(firstName);
             user.setLastName(lastName);
+            return userRepository.save(user);
+        } else {
+            throw new RuntimeException("User not found with ID: " + userId);
+        }
+    }
+
+    /**
+     * Partially update user fields (names only). Pass null for fields that should
+     * not change.
+     */
+    public User updateUserNames(Long userId, String firstName, String lastName) {
+        Optional<User> optionalUser = userRepository.findById(userId);
+        if (optionalUser.isPresent()) {
+            User user = optionalUser.get();
+            if (firstName != null) {
+                user.setFirstName(firstName);
+            }
+            if (lastName != null) {
+                user.setLastName(lastName);
+            }
             return userRepository.save(user);
         } else {
             throw new RuntimeException("User not found with ID: " + userId);

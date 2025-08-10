@@ -98,7 +98,7 @@ public class UserController {
     }
 
     /**
-     * Update user profile
+     * Update user profile (partial fields allowed)
      */
     @PutMapping("/profile")
     public ResponseEntity<?> updateUserProfile(
@@ -113,13 +113,13 @@ public class UserController {
                         .body(Map.of("error", "Invalid token: missing subject claim"));
             }
 
-            // Get user data from request
-            String firstName = request.get("firstName");
-            String lastName = request.get("lastName");
+            // Get user data from request (optional fields)
+            String firstName = request.getOrDefault("firstName", null);
+            String lastName = request.getOrDefault("lastName", null);
 
-            if (firstName == null || lastName == null) {
+            if (firstName == null && lastName == null) {
                 return ResponseEntity.badRequest()
-                        .body(Map.of("error", "firstName and lastName are required"));
+                        .body(Map.of("error", "At least one of firstName or lastName must be provided"));
             }
 
             // Find user in database
@@ -129,11 +129,8 @@ public class UserController {
                         .body(Map.of("error", "User profile not found"));
             }
 
-            // Update user profile
-            User user = userOptional.get();
-            user.setFirstName(firstName);
-            user.setLastName(lastName);
-            User updatedUser = userService.updateUser(user.getUserId(), firstName, lastName);
+            // Update only provided fields (names only)
+            User updatedUser = userService.updateUserNames(userOptional.get().getUserId(), firstName, lastName);
 
             return ResponseEntity.ok(updatedUser);
 

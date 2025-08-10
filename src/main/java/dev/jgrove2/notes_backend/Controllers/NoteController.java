@@ -173,10 +173,10 @@ public class NoteController {
     /**
      * Get note info by filename
      */
-    @GetMapping("/{filename}/info")
+    @GetMapping("/info")
     public ResponseEntity<?> getNoteInfoByFilename(
             @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable String filename) {
+            @RequestParam("filename") String filename) {
 
         try {
             // Extract kinde_user_id from JWT token
@@ -215,10 +215,10 @@ public class NoteController {
     /**
      * Get note content by filename (returns the actual HTML file from S3)
      */
-    @GetMapping("/{filename}")
+    @GetMapping("/content")
     public ResponseEntity<?> getNoteContentByFilename(
             @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable String filename) {
+            @RequestParam("filename") String filename) {
 
         try {
             // Extract kinde_user_id from JWT token
@@ -275,10 +275,10 @@ public class NoteController {
     /**
      * Delete note by filename
      */
-    @DeleteMapping("/{filename}")
+    @DeleteMapping
     public ResponseEntity<?> deleteNote(
             @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable String filename) {
+            @RequestParam("filename") String filename) {
 
         try {
             // Extract kinde_user_id from JWT token
@@ -318,6 +318,44 @@ public class NoteController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to delete note: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Rename a note's filename (object key remains unchanged)
+     */
+    @PostMapping("/rename")
+    public ResponseEntity<?> renameNote(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestParam("oldFilename") String oldFilename,
+            @RequestParam("newFilename") String newFilename) {
+        try {
+            // Extract kinde_user_id from JWT token
+            String kindeUserId = tokenExtractionUtil.extractKindeUserIdFromHeader(authorizationHeader);
+            if (kindeUserId == null || kindeUserId.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Invalid token: missing subject claim"));
+            }
+
+            // Get user from database
+            Optional<User> userOptional = userService.getUserByKindeUserId(kindeUserId);
+            if (!userOptional.isPresent()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "User profile not found"));
+            }
+
+            User user = userOptional.get();
+            Long userId = user.getUserId();
+
+            // Rename the note (does not touch the object key)
+            Note updated = noteService.renameNote(userId, oldFilename, newFilename);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", ex.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to rename note: " + e.getMessage()));
         }
     }
 

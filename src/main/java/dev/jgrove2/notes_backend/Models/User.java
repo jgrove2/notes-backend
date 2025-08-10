@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 @Table(name = "users")
 public class User {
 
+    private static final long DEFAULT_MAX_STORAGE_BYTES = 500000000L; // 0.5 GiB
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "userid")
@@ -31,8 +33,15 @@ public class User {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
     @Column(name = "kinde_user_id", unique = true, nullable = false)
     private String kindeUserId;
+
+    @Column(name = "max_storage")
+    private Long maxStorage;
 
     // Default constructor
     public User() {
@@ -45,6 +54,7 @@ public class User {
         this.kindeUserId = kindeUserId;
         this.isActive = true;
         this.lastModifiedDate = LocalDateTime.now();
+        this.maxStorage = DEFAULT_MAX_STORAGE_BYTES;
     }
 
     // Getters and Setters
@@ -99,12 +109,29 @@ public class User {
         this.createdAt = createdAt;
     }
 
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
     public String getKindeUserId() {
         return kindeUserId;
     }
 
     public void setKindeUserId(String kindeUserId) {
         this.kindeUserId = kindeUserId;
+        this.lastModifiedDate = LocalDateTime.now();
+    }
+
+    public Long getMaxStorage() {
+        return maxStorage;
+    }
+
+    public void setMaxStorage(Long maxStorage) {
+        this.maxStorage = maxStorage;
         this.lastModifiedDate = LocalDateTime.now();
     }
 
@@ -118,7 +145,9 @@ public class User {
                 ", lastModifiedDate=" + lastModifiedDate +
                 ", isActive=" + isActive +
                 ", createdAt=" + createdAt +
+                ", updatedAt=" + updatedAt +
                 ", kindeUserId='" + kindeUserId + '\'' +
+                ", maxStorage=" + maxStorage +
                 '}';
     }
 
