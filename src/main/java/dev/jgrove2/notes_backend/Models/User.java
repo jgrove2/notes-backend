@@ -62,7 +62,7 @@ public class User {
         this.lastModifiedDate = LocalDateTime.now();
         this.maxStorage = DEFAULT_MAX_STORAGE_BYTES;
         this.autoSave = Boolean.FALSE;
-        this.autoSaveDuration = null;
+        this.autoSaveDuration = 10;
     }
 
     // Getters and Setters
