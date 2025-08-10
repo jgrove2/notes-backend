@@ -62,6 +62,15 @@ public class NoteController {
             Long userId = user.getUserId();
             Long fileSize = file.getSize();
 
+            // Enforce storage quota before upload
+            Long maxStorage = user.getMaxStorage();
+            Long currentTotal = noteService.getTotalStorageSizeByUserId(userId);
+            long wouldBeTotal = (currentTotal == null ? 0L : currentTotal) + (fileSize == null ? 0L : fileSize);
+            if (maxStorage != null && wouldBeTotal > maxStorage) {
+                return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                        .body(Map.of("error", "Storage limit exceeded"));
+            }
+
             // Upload file to R2
             String objectKey = s3Service.uploadFile(file.getInputStream(), filename, userId);
 
@@ -143,7 +152,7 @@ public class NoteController {
             Long userId = user.getUserId();
             Long newFileSize = file.getSize();
 
-            // Get existing note to find the object key
+            // Get existing note to find the object key and current size
             Optional<Note> existingNote = noteService.getNoteByUserIdAndFileName(userId, filename);
             if (!existingNote.isPresent()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -151,16 +160,24 @@ public class NoteController {
             }
 
             String objectKey = existingNote.get().getObjectKey();
+            long existingSize = existingNote.get().getTotalSizeBytes() == null ? 0L
+                    : existingNote.get().getTotalSizeBytes();
 
-            System.out.println("Updating file in R2: " + objectKey);
+            // Enforce storage quota before upload (account for replacement)
+            Long maxStorage = user.getMaxStorage();
+            Long currentTotal = noteService.getTotalStorageSizeByUserId(userId);
+            long wouldBeTotal = (currentTotal == null ? 0L : currentTotal) - existingSize
+                    + (newFileSize == null ? 0L : newFileSize);
+            if (maxStorage != null && wouldBeTotal > maxStorage) {
+                return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                        .body(Map.of("error", "Storage limit exceeded"));
+            }
+
             // Update file in R2
             s3Service.updateFile(file.getInputStream(), objectKey);
 
-            System.out.println("Updating note in database: " + filename);
             // Update note in database
             Note updatedNote = noteService.updateNote(userId, filename, newFileSize);
-
-            System.out.println("Updated note: " + updatedNote);
 
             return ResponseEntity.ok(updatedNote);
 
