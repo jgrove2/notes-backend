@@ -55,10 +55,11 @@ public class UserService {
     }
 
     /**
-     * Partially update user fields (names only). Pass null for fields that should
-     * not change.
+     * Partially update user fields (names, autoSave, autoSaveDuration).
+     * Pass null for fields that should not change.
      */
-    public User updateUserNames(Long userId, String firstName, String lastName) {
+    public User updateUserProfile(Long userId, String firstName, String lastName, Boolean autoSave,
+            Integer autoSaveDuration) {
         Optional<User> optionalUser = userRepository.findById(userId);
         if (optionalUser.isPresent()) {
             User user = optionalUser.get();
@@ -67,6 +68,12 @@ public class UserService {
             }
             if (lastName != null) {
                 user.setLastName(lastName);
+            }
+            if (autoSave != null) {
+                user.setAutoSave(autoSave);
+            }
+            if (autoSaveDuration != null) {
+                user.setAutoSaveDuration(autoSaveDuration);
             }
             return userRepository.save(user);
         } else {

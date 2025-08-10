@@ -43,6 +43,12 @@ public class User {
     @Column(name = "max_storage")
     private Long maxStorage;
 
+    @Column(name = "auto_save")
+    private Boolean autoSave;
+
+    @Column(name = "auto_save_duration")
+    private Integer autoSaveDuration;
+
     // Default constructor
     public User() {
     }
@@ -55,6 +61,8 @@ public class User {
         this.isActive = true;
         this.lastModifiedDate = LocalDateTime.now();
         this.maxStorage = DEFAULT_MAX_STORAGE_BYTES;
+        this.autoSave = Boolean.FALSE;
+        this.autoSaveDuration = null;
     }
 
     // Getters and Setters
@@ -135,6 +143,24 @@ public class User {
         this.lastModifiedDate = LocalDateTime.now();
     }
 
+    public Boolean getAutoSave() {
+        return autoSave;
+    }
+
+    public void setAutoSave(Boolean autoSave) {
+        this.autoSave = autoSave;
+        this.lastModifiedDate = LocalDateTime.now();
+    }
+
+    public Integer getAutoSaveDuration() {
+        return autoSaveDuration;
+    }
+
+    public void setAutoSaveDuration(Integer autoSaveDuration) {
+        this.autoSaveDuration = autoSaveDuration;
+        this.lastModifiedDate = LocalDateTime.now();
+    }
+
     // toString method for debugging
     @Override
     public String toString() {
@@ -148,6 +174,8 @@ public class User {
                 ", updatedAt=" + updatedAt +
                 ", kindeUserId='" + kindeUserId + '\'' +
                 ", maxStorage=" + maxStorage +
+                ", autoSave=" + autoSave +
+                ", autoSaveDuration=" + autoSaveDuration +
                 '}';
     }
 

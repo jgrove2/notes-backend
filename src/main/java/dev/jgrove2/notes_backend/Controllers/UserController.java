@@ -103,7 +103,7 @@ public class UserController {
     @PutMapping("/profile")
     public ResponseEntity<?> updateUserProfile(
             @RequestHeader("Authorization") String authorizationHeader,
-            @RequestBody Map<String, String> request) {
+            @RequestBody Map<String, Object> request) {
 
         try {
             // Extract kinde_user_id from JWT token
@@ -114,12 +114,34 @@ public class UserController {
             }
 
             // Get user data from request (optional fields)
-            String firstName = request.getOrDefault("firstName", null);
-            String lastName = request.getOrDefault("lastName", null);
+            String firstName = request.containsKey("firstName") ? String.valueOf(request.get("firstName")) : null;
+            String lastName = request.containsKey("lastName") ? String.valueOf(request.get("lastName")) : null;
+            Boolean autoSave = null;
+            if (request.containsKey("autoSave")) {
+                Object v = request.get("autoSave");
+                if (v instanceof Boolean) {
+                    autoSave = (Boolean) v;
+                } else if (v instanceof String) {
+                    autoSave = Boolean.parseBoolean((String) v);
+                }
+            }
+            Integer autoSaveDuration = null;
+            if (request.containsKey("autoSaveDuration")) {
+                try {
+                    Object val = request.get("autoSaveDuration");
+                    autoSaveDuration = (val instanceof Number)
+                            ? ((Number) val).intValue()
+                            : Integer.parseInt(String.valueOf(val));
+                } catch (NumberFormatException ex) {
+                    return ResponseEntity.badRequest()
+                            .body(Map.of("error", "autoSaveDuration must be an integer"));
+                }
+            }
 
-            if (firstName == null && lastName == null) {
+            if (firstName == null && lastName == null && autoSave == null && autoSaveDuration == null) {
                 return ResponseEntity.badRequest()
-                        .body(Map.of("error", "At least one of firstName or lastName must be provided"));
+                        .body(Map.of("error",
+                                "At least one of firstName, lastName, autoSave, or autoSaveDuration must be provided"));
             }
 
             // Find user in database
@@ -129,8 +151,9 @@ public class UserController {
                         .body(Map.of("error", "User profile not found"));
             }
 
-            // Update only provided fields (names only)
-            User updatedUser = userService.updateUserNames(userOptional.get().getUserId(), firstName, lastName);
+            // Update only provided fields (names, autoSave, autoSaveDuration)
+            User updatedUser = userService.updateUserProfile(
+                    userOptional.get().getUserId(), firstName, lastName, autoSave, autoSaveDuration);
 
             return ResponseEntity.ok(updatedUser);
 
