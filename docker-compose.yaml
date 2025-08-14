@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  notes-backend:
+    image: jgrove/notes-backend:latest
+    container_name: notes-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
