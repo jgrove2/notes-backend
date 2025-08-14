@@ -25,4 +25,4 @@ jobs:
           tags: ${{ secrets.DOCKER_USERNAME }}/notes-backend:latest
 
       - name: Trigger Portainer redeploy
-        run: curl -X POST "https://portainer.example.com/api/webhooks/xxxx"
+        run: curl -X POST "${{ secrets.PORTAINER_WEBHOOK_URL }}"
