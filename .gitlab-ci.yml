@@ -1,0 +1,28 @@
+stages:
+  - build
+  - deploy
+
+build_and_push:
+  stage: build
+  image: docker:24-cli
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    - docker build -t "$DOCKER_USERNAME/notes-backend:latest" .
+    - docker push "$DOCKER_USERNAME/notes-backend:latest"
+
+deploy:
+  stage: deploy
+  image: curlimages/curl:8.8.0
+  needs:
+    - job: build_and_push
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - curl -f -X POST "$PORTAINER_WEBHOOK_URL" || (echo "Deployment webhook failed" && exit 1)
